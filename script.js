@@ -5,12 +5,21 @@ var ctr = 0;
 var r_ctr_max = 1000;
 var r_ctr_min = 200;
 var pubnub;
+
+var group_state = 0; 
+var min_group_state = -255;
+var max_group_state = 255;
  
 var width;
 var height;
 var mid;
 
+// background
+var bgd_freq = 1;
+var bgd_mag = 1;
+
 var params = [];
+var active_params = [1];
 
 var update_buffer = 2000;
 
@@ -18,6 +27,9 @@ var session_started = false;
 var session_start_time = 0;
 
 var dont_listen = false;
+
+var last_publish = 0;
+var publish_interval = 1500;
 
 function setup() {
 	$('#loading').hide();
@@ -35,7 +47,7 @@ function setup() {
 
 	noiseSeed(5)
 	colorMode(HSB)
-	init_n_params()
+	init_all_params()
 
 	background('rgba(0,0,0, 1)');
 	console.log(0)
@@ -45,15 +57,21 @@ function setup() {
 	})
 }
 
-function init_n_params() {
+function init_all_params() {
 	params = [
 		init_params(mid.x,mid.y-100, color(200, 0, 255)),
 		init_params(mid.x-100,mid.y+50, color(100, 00, 255)),
+		init_params(mid.x+100,mid.y+50, color(55, 0, 255)),
 		init_params(mid.x+100,mid.y+50, color(55, 0, 255))
 	]
 }
 
 function draw() {
+
+	if (Date.now() - last_publish > publish_interval) {
+		publish_group_state()
+		last_publish = Date.now();
+	}
 	
 	ctr += 1
 
@@ -67,18 +85,36 @@ function draw() {
 		}
 	}
 	
-	//distress
-	//background(color(0,20,50, 0.03));
-	background(color(0,0,10, 0.03));
+	render_background( params )
 	
 	for (var i=0; i<2000;i++) {
-		render_point(params[i%params.length],i)
-
+		var p_idx = choice(active_params) 
+		if (p_idx) render_point(params[p_idx],i)
 	}
 
-	
 }
 
+function render_background( params ) {
+
+	var group_state = get_group_state();
+
+	var distress_h = 0;
+	var hype_h = 180;
+	var h; 
+	var s = (Math.abs(group_state)/255)*30;
+	var s = 30;
+	var freq = (ctr/(50 - (255-Math.abs(group_state))))
+	var b = (Math.cos( freq )+1)/2*40;
+	
+	if (group_state > 0) {
+		h = hype_h;	
+	} else {
+		h = distress_h
+	}
+
+	background(color(h,s,b, 0.03));
+	
+}
 
 function render_point(prm, i) {
 
@@ -103,23 +139,29 @@ function render_point(prm, i) {
 
 	// Radiuses
 	var r;
-	if (Math.random() > prm.r_ctr / r_ctr_max) {
-		rmode = prm.rmode0
+	var rmode = prm.rmode0
+	
+	if ( prm.state > 0) {
+		// party
+		rmode = rmode % 6
 	} else {
-		rmode = prm.rmode0
+		rmode = (rmode % 4)+6
 	}
-	//rmode = 5;
-	if (rmode == 0) r = (w0*width*.4) + width*rand0
+
+	// Circulars
+	if (rmode == 0) r = (w0*width*.4) + width*rand0 
 	if (rmode == 1) r = (rand0 * width)/2+w0 * width * .08 
 	if (rmode == 2) r = ((rand0 * width)/2+w0 * width * .08 + n0*width - width/2) - width/2
 	if (rmode == 3) r = w1  * width*2
-	if (rmode == 4) r = w2  * width
-	if (rmode == 5) r = (w1+w2)/2 * width 
-	if (rmode == 6) r = (w2+w3)/2 * width 
-	if (rmode == 7) r = (w3*.3+w1*.9)* width 
-	if (rmode == 8) r = w4  *width/2  + w1*width/2
-	if (rmode == 9) r = w5  *width/2 
-	
+	if (rmode == 4) r = (w3*.3+w1*.9)* width 
+	if (rmode == 5) r = w5  *width/2 
+
+	// Irregulars
+	if (rmode == 6) r = w4  *width/2  + w1*width/2
+	if (rmode == 7) r = w2  * width
+	if (rmode == 8) r = (w1+w4)/2 * width 
+	if (rmode == 9) r = (w2+w3)/2 * width 
+
 	if (include([0,1,2,3,7,9], rmode) ) {
 		theta = theta + n1*Math.PI
 	}
@@ -131,8 +173,8 @@ function render_point(prm, i) {
 
 	// for testing
 	if (0) {
-		x = r
-		y = theta * height/2
+		y = ((r/width)*height)%height
+		x = (theta * width)%width
 	}
 
 	stroke(prm.c)
@@ -148,8 +190,8 @@ function init_pubnub() {
 	if (!PubNub) return;
 
 	pubnub = new PubNub({
-		subscribeKey: "sub-c-ac854de4-c885-11e7-9695-d62da049879f",
-		publishKey: "pub-c-31315745-29a7-4863-bc2a-97a528df3c93",
+		subscribeKey: "sub-c-d85c438c-d64a-11e7-bcb2-02515ebb3dc0",
+		publishKey: "pub-c-6ccec77b-ca42-473d-a464-74d2db31f511",
 		ssl: true
 	})
 
@@ -175,39 +217,30 @@ function init_pubnub() {
 	})
 
 	pubnub.subscribe({
-	    channels: ['channel1','channel2'],
+	    channels: ['Channel0','Channel1','Channel2','Channel3','Channel4','Channel5'],
 	});
 }
 
 function parse_message(message) {
-	console.log(message)	
+
+	//console.log(message)
+
+	var channel = Number(message.channel.slice(7, message.channel.length))
 	var msg = message.message;	
-	if (Object.keys(msg)[0] == 'karoMessage' && !msg.hasOwnProperty("clientMessage")){
-		if (msg['karoMessage'] == 1){
-			p1.on = true;	
-		}
-		if (msg['karoMessage'] == 0){
-			p1.on = false;	
-		}
-	}
+	var state = msg.focusDesire;
 
-	if (Object.keys(msg)[0] == 'chrisMessage'){
-		if (msg['chrisMessage'] == 1){
-			p2.on = true;	
-		}
-		if (msg['chrisMessage'] == 0){
-			p2.on = false;	
-		}
-	}
+	if (channel != 0) set_param_state(channel - 1, state)
 
-	if (p1.on && p2.on && !session_started) {
-		session_started = true;
-		session_start_time = Date.now();
-		publish_begin_session()
-	}
+	get_group_state()
+}
 
-	
-		
+function set_param_state(i,state) {
+
+	if (!include(active_params, i))
+		active_params.push(i)
+
+	params[i].activate_time = Date.now()
+	params[i].state = state;
 }
 
 function publish(publishConfig) {
@@ -234,6 +267,38 @@ function publish_end_session() {
 	publish(publishConfig);
 }
 
+function publish_group_state() {
+
+	var publishConfig = {
+	    channel : "Channel0",
+	    message : {"state":get_group_state()}
+	}
+
+	publish(publishConfig)
+}
+
+function get_group_state() {
+
+	if (!active_params.length)
+		return 0	
+	
+	var min_state = 1000000;
+	var sum_state = 0;	
+
+	for (var i = 0; i < active_params.length; i++) {
+		var p_idx = active_params[i];
+		sum_state += params[p_idx].state
+		
+		if (min_state > params[p_idx].state)
+			min_state = params[p_idx].state
+	}
+	console.log(sum_state, min_state)
+
+	if (min_state < 0) return min_state
+	return sum_state / active_params.length
+
+}
+
 function init_params(cx,cy, c) {
 	return {
 		c : c,
@@ -244,7 +309,10 @@ function init_params(cx,cy, c) {
 		cy : mid.y,
 		ctr_off : range_val(1000,100000),
 		theta_off : Math.random() * Math.PI * 2 ,
-	
+		distress_lvl : 0,
+		activate_time : 0,
+		//state : range_val(-255, 255),
+		state : 100, 
 		dir : 1,
 	}
 }
