@@ -105,7 +105,7 @@ function render_background( params ) {
 	var freq = (ctr/(50 - (255-Math.abs(group_state))))
 	var b = (Math.cos( freq )+1)/2*40;
 	
-	if (group_state > 0) {
+	if (group_state >= 0) {
 		h = hype_h;	
 	} else {
 		h = distress_h
@@ -120,8 +120,8 @@ function render_point(prm, i) {
 	var theta = (Math.random() * Math.PI*2 + prm.theta_off+prm.r_ctr)% (Math.PI*2)
 	var coords = polar_to_cartesian(1, theta )
 
-	//var ctr_off = (ctr + prm.ctr_off + r_ctr_max-prm.r_ctr)/10;
-	var ctr_off = (ctr + prm.ctr_off + r_ctr_max-prm.r_ctr)/((255-Math.abs(prm.state))/10 + 10);
+	var ctr_off = (ctr + prm.ctr_off + r_ctr_max-prm.r_ctr)/10;
+	//var ctr_off = (ctr + prm.ctr_off + r_ctr_max-prm.r_ctr)/((255-Math.abs(prm.state))/10 + 10);
 
 	// Randoms
 	var rand0 = Math.random()	
@@ -142,7 +142,7 @@ function render_point(prm, i) {
 	var r;
 	var rmode = prm.rmode0
 	
-	if ( prm.state > 0) {
+	if ( prm.state >= 0) {
 		// party
 		rmode = rmode % 6
 	} else {
