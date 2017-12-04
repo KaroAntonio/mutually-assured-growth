@@ -19,7 +19,7 @@ var bgd_freq = 1;
 var bgd_mag = 1;
 
 var params = [];
-var active_params = [1];
+var active_params = [];
 
 var update_buffer = 2000;
 
@@ -50,7 +50,6 @@ function setup() {
 	init_all_params()
 
 	background('rgba(0,0,0, 1)');
-	console.log(0)
 
 	$(document).click(function() {
 		console.log('click')
@@ -101,7 +100,7 @@ function render_background( params ) {
 	var distress_h = 0;
 	var hype_h = 180;
 	var h; 
-	var s = (Math.abs(group_state)/255)*30;
+	//var s = (Math.abs(group_state)/255)*30;
 	var s = 30;
 	var freq = (ctr/(50 - (255-Math.abs(group_state))))
 	var b = (Math.cos( freq )+1)/2*40;
@@ -120,14 +119,16 @@ function render_point(prm, i) {
 
 	var theta = (Math.random() * Math.PI*2 + prm.theta_off+prm.r_ctr)% (Math.PI*2)
 	var coords = polar_to_cartesian(1, theta )
-	var ctr_off = (ctr + prm.ctr_off + r_ctr_max-prm.r_ctr)/10;
+
+	//var ctr_off = (ctr + prm.ctr_off + r_ctr_max-prm.r_ctr)/10;
+	var ctr_off = (ctr + prm.ctr_off + r_ctr_max-prm.r_ctr)/((255-Math.abs(prm.state))/10 + 10);
 
 	// Randoms
 	var rand0 = Math.random()	
 
 	var n0 = noise(rand0) 
 	var n1 = noise( coords[0]+1 ,coords[1]+1, ctr_off/300)
-	var n2 = noise( coords[0]+1 ,coords[1]+1, ctr_off/50)
+	var n2 = noise( coords[0]+1 ,coords[1]+1, ctr_off/30)
 	var n3 = noise( (1-(theta/ Math.PI ))*2, ctr_off/300  )  *.5
 	
 	var w0 = Math.sin( rand0 * Math.PI*4 - prm.dir*(ctr_off)/50  )-1
@@ -292,7 +293,6 @@ function get_group_state() {
 		if (min_state > params[p_idx].state)
 			min_state = params[p_idx].state
 	}
-	console.log(sum_state, min_state)
 
 	if (min_state < 0) return min_state
 	return sum_state / active_params.length
@@ -312,7 +312,7 @@ function init_params(cx,cy, c) {
 		distress_lvl : 0,
 		activate_time : 0,
 		//state : range_val(-255, 255),
-		state : 100, 
+		state : 255, 
 		dir : 1,
 	}
 }
