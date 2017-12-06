@@ -1,4 +1,4 @@
-const static char pubChannel[] = "Channel1"; //choose a name for the channel to publish messages to
+const static char pubChannel[] = "Channel2"; //choose a name for the channel to publish messages to
 int dialValue = 0;   //starting value, change it up!
 
 #include <ArduinoJson.h>
@@ -8,11 +8,11 @@ int dialValue = 0;   //starting value, change it up!
 #define PubNub_BASE_CLIENT WiFiClient
 #include <PubNub.h>
 //
-static char ssid[] = "Century House";      //SSID of the wireless network
-static char pass[] = "5875219970";    //password of that network
+//static char ssid[] = "Century House";      //SSID of the wireless network
+//static char pass[] = "5875219970";    //password of that network
 
-//static char ssid[] = "ocadu-embedded";      //SSID of the wireless network
-//static char pass[] = "internetofthings";    //password of that network
+static char ssid[] = "ocadu-embedded";      //SSID of the wireless network
+static char pass[] = "internetofthings";    //password of that network
 
 int status = WL_IDLE_STATUS;                // the Wifi radio's status
 
