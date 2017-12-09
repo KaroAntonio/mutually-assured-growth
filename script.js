@@ -6,6 +6,14 @@ var r_ctr_max = 1000;
 var r_ctr_min = 200;
 var pubnub;
 
+// Serial
+var portName = '/dev/cu.usbmodem1421';
+var in_data = 0;
+var serial;
+var serial_id = Math.round(Math.random() * 10000000)
+
+var local_id = Math.round(Math.random() * 10000000)
+
 var group_state = 0; 
 var min_group_state = -255;
 var max_group_state = 255;
@@ -18,7 +26,7 @@ var mid;
 var bgd_freq = 1;
 var bgd_mag = 1;
 
-var params = [];
+var params = {};
 var active_params = [];
 
 var update_buffer = 2000;
@@ -31,6 +39,10 @@ var dont_listen = false;
 var last_publish = 0;
 var publish_interval = 1500;
 
+var local_state = 0;
+var local_state_enabled = false;
+var last_local_update = 0;
+
 function setup() {
 	$('#loading').hide();
 
@@ -39,6 +51,9 @@ function setup() {
 	mid = new p5.Vector(width/2., height/2.)
 	
 	init_pubnub();
+	init_serial();
+
+	init_local_control();
 
 	canvas = createCanvas(width, height).canvas
 	$(canvas).css({top:0})
@@ -47,17 +62,50 @@ function setup() {
 
 	noiseSeed(5)
 	colorMode(HSB)
-	init_all_params()
+	//init_all_params()
 
 	background('rgba(0,0,0, 1)');
+	
+	$('#client-status-bar').hide();
+	$('#serial-status-bar').hide();
 
-	$(document).click(function() {
-		console.log('click')
+	$(canvas).click(function() {
+		
+		$('#client-status-bar').show();
+		local_state_enabled = true;
+		// 0 is local state
+		//set_param_state(0, local_state) 
 	})
+}
+
+function init_serial() {
+	serial = new p5.SerialPort();
+	serial.on('list', printList);
+	serial.on('connected', serverConnected);
+}
+
+function init_local_control() {
+	$('#state').text(local_state);
+	$('#plus').click(function() { increase_local_state(10) })
+	$('#minus').click(function() { decrease_local_state(10) })
+}
+
+function increase_local_state(ds) {
+	local_state += ds; 
+	$('#state').text(local_state);
+	set_param_state(0, local_state) 
+	
+}
+
+function decrease_local_state(ds) {
+	local_state -= ds; 
+	$('#state').text(local_state);
+	set_param_state(0, local_state) 
 }
 
 function init_all_params() {
 	params = [
+		init_params(mid.x,mid.y-100, color(200, 0, 255)),
 		init_params(mid.x,mid.y-100, color(200, 0, 255)),
 		init_params(mid.x-100,mid.y+50, color(100, 00, 255)),
 		init_params(mid.x+100,mid.y+50, color(55, 0, 255)),
@@ -67,14 +115,25 @@ function init_all_params() {
 
 function draw() {
 
+	if (local_state_enabled) {	
+		if (Date.now() - last_local_update > 500) {
+			if (local_state > 0) 
+				decrease_local_state(1)
+			if (local_state < 0) 
+				increase_local_state(1)
+			last_local_update = Date.now();
+			publish_local_state();
+		}
+	}
+
 	if (Date.now() - last_publish > publish_interval) {
 		publish_group_state()
 		last_publish = Date.now();
 	}
 	
 	ctr += 1
-
-	for (var i = 0; i < params.length; i++) {
+	for (var j = 0; j < active_params.length; j++) {
+		i = active_params[j]
 		params[i].r_ctr -= 1
 		if (params[i].r_ctr <= 0) {
 			params[i].rmode0 = params[i].rmode1;
@@ -85,12 +144,12 @@ function draw() {
 	}
 	
 	render_background( params )
+	//console.log(active_params.length)
 	
 	for (var i=0; i<2000;i++) {
 		var p_idx = choice(active_params) 
-		if (p_idx) render_point(params[p_idx],i)
+		if (p_idx != undefined) render_point(params[p_idx],i)
 	}
-
 }
 
 function render_background( params ) {
@@ -199,7 +258,7 @@ function init_pubnub() {
 	pubnub.addListener({
 		status: function(statusEvent) {
 			if (statusEvent.category === "PNConnectedCategory") {
-				console.log('CONNECTED! I THINIK.')
+				console.log('PUBNUB CONNECTED! I THINIK.')
 			} else if (statusEvent.category === "PNUnknownCategory") {
 				var newState = {
 					new: 'error'
@@ -230,17 +289,25 @@ function parse_message(message) {
 	var msg = message.message;	
 	var state = msg.focusDesire;
 
-	if (channel != 0) set_param_state(channel - 1, state)
+	if (channel != 0) set_param_state(channel, state)
+	if (channel == 0 && include(Object.keys(msg), 'id')) {
+		//console.log(message)
+		set_param_state(msg['id'], msg['state'])
+	}
 
 	get_group_state()
 }
 
 function set_param_state(i,state) {
+	
+	//console.log(active_params, i)
+	if (!include(active_params, i.toString())) {
+		params[i] = init_params(0,0, color(55, 0, 255));
+		active_params = Object.keys(params);
+		params[i].activate_time = Date.now()
+		//console.log('REINIT')
+	}
 
-	if (!include(active_params, i))
-		active_params.push(i)
-
-	params[i].activate_time = Date.now()
 	params[i].state = state;
 }
 
@@ -251,19 +318,18 @@ function publish(publishConfig) {
 	})
 }
 
-function publish_begin_session() {
-	console.log('publish')
+function publish_local_state() {
 	var publishConfig = {
-	    channel : "channel1",
-	    message : {"karoMessage":4,"clientMessage":true}
+	    channel : "Channel0",
+	    message : {"karoMessage":0, "id":local_id, "state":local_state}
 	}
 	publish(publishConfig);
 }
 
-function publish_end_session() {
+function publish_serial() {
 	var publishConfig = {
-	    channel : "channel1",
-	    message : {"karoMessage":5}
+	    channel : "Channel0",
+	    message : {"karoMessage":0, "id":serial_id, "state":(in_data*2)-254}
 	}
 	publish(publishConfig);
 }
@@ -280,8 +346,8 @@ function publish_group_state() {
 
 function get_group_state() {
 
-	if (!active_params.length)
-		return 0	
+	if (!active_params) return 0	
+	if (!active_params.length)return 0	
 	
 	var min_state = 1000000;
 	var sum_state = 0;	
@@ -314,6 +380,16 @@ function init_params(cx,cy, c) {
 		//state : range_val(-255, 255),
 		state : 255, 
 		dir : 1,
+	}
+}
+
+function printList(portList) {
+	// return the name of the correct serial port
+	// portList is an array of serial port names
+	console.log('list')
+	for (var i = 0; i < portList.length; i++) {
+	// Display the list the console:
+		console.log(i + " " + portList[i]);
 	}
 }
 
@@ -363,4 +439,33 @@ function polar_to_cartesian(r, theta) {
         return [x,y]
 }
 
-
+function serverConnected() {
+	console.log('connected to server.');
+	serial.on('open', portOpen);        // callback for the port opening
+	serial.on('data', serialEvent);     // callback for when new data arrives
+	serial.on('error', serialError);    // callback for errors
+	serial.on('close', portClose);      // callback for the port closing
+	
+	serial.list();                      // list the serial ports
+	serial.open(portName); 
+}
+ 
+function portOpen() {
+	console.log('the serial port opened.')
+}
+ 
+function serialEvent() {
+	in_data = Number(serial.read())
+	$('#serial-status-bar').show()
+	$('#serial-state').text((in_data*2)-254)
+	publish_serial()
+	console.log(in_data)
+}
+ 
+function serialError(err) {
+	console.log('Something went wrong with the serial port. ' + err);
+}
+ 
+function portClose() {
+	console.log('The serial port closed.');
+}
