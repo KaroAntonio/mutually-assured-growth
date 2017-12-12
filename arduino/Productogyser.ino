@@ -1,4 +1,4 @@
-const static char pubChannel[] = "Channel2"; //choose a name for the channel to publish messages to
+const static char pubChannel[] = "Channel1"; //choose a name for the channel to publish messages to
 int dialValue = 0;   //starting value, change it up!
 
 #include <ArduinoJson.h>
@@ -7,12 +7,15 @@ int dialValue = 0;   //starting value, change it up!
 #include <WiFi101.h>
 #define PubNub_BASE_CLIENT WiFiClient
 #include <PubNub.h>
-//
-//static char ssid[] = "Century House";      //SSID of the wireless network
-//static char pass[] = "5875219970";    //password of that network
 
-static char ssid[] = "ocadu-embedded";      //SSID of the wireless network
-static char pass[] = "internetofthings";    //password of that network
+static char ssid[] = "Lanalgo 2.4";      //SSID of the wireless network
+static char pass[] = "zapzapzap";    //password of that network
+
+//static char ssid[] = "funnet";      //SSID of the wireless network
+//static char pass[] = "ihbt6066";    //password of that network
+
+//static char ssid[] = "ocadu-embedded";      //SSID of the wireless network
+//static char pass[] = "internetofthings";    //password of that network
 
 int status = WL_IDLE_STATUS;                // the Wifi radio's status
 
@@ -22,7 +25,7 @@ const static char subkey[] = "sub-c-d85c438c-d64a-11e7-bcb2-02515ebb3dc0";  //ge
 const static char subChannel[] = "Channel0"; //choose a name for the channel to publish messages to
 
 int ledPinG = 10;                  //encoder Green LED
-int ledPinR = 9;                  //encoder Red LED
+int ledPinR = 13;                  //encoder Red LED
 
 unsigned long lastSubscribe = 0;
 unsigned long lastPublish = 0;
@@ -47,7 +50,7 @@ unsigned char encoder_A_prev = 0;
 //vvvvvvvvNeoPixel//////
 
 #include <Adafruit_NeoPixel.h>
-int neoPin = 6;
+#define PIN            6
 
 // Parameter 1 = number of pixels in strip
 // Parameter 2 = pin number (most are valid)
@@ -56,7 +59,7 @@ int neoPin = 6;
 //   NEO_KHZ400  400 KHz (classic 'v1' (not v2) FLORA pixels, WS2811 drivers)
 //   NEO_GRB     Pixels are wired for GRB bitstream (most NeoPixel products)
 //   NEO_RGB     Pixels are wired for RGB bitstream (v1 FLORA pixels, not v2)
-Adafruit_NeoPixel singlePixel = Adafruit_NeoPixel(1, neoPin, NEO_KHZ800);
+Adafruit_NeoPixel singlePixel = Adafruit_NeoPixel(1, PIN, NEO_GRB + NEO_KHZ800);
 
 void setup()  {
   neoPixelSetup();
@@ -71,7 +74,7 @@ void neoPixelSetup() {
 
 void encoderSetup()  {
   // declare pin 9 to be an output:
-  pinMode(9, OUTPUT);
+  //pinMode(9, OUTPUT);
   pinMode(encoderPin_A, INPUT_PULLUP);
   pinMode(encoderPin_B, INPUT_PULLUP);
   encoderCurrentTime = millis();
@@ -112,26 +115,21 @@ void Depreciation() {
 }
 
 void neoPixelLoop() {
-  //singlePixel.setPixelColor(n, red, green, blue); //RGB strips
-  //singlePixel.setPixelColor(n, red, green, blue, white); // RGB + W strips
-  if (subscribeValue >= 0) {
-    singlePixel.setPixelColor(0, 0, 255, 0);
+  if (subscribeValue < 0) {
+    singlePixel.setPixelColor(0, singlePixel.Color(255, 0, 0)); // red
+    singlePixel.setBrightness(abs(subscribeValue));
+
+  }
+  if (subscribeValue > 0) {
+    singlePixel.setPixelColor(0, singlePixel.Color(0, 255, 0)); // green
     singlePixel.setBrightness(subscribeValue);
-  }
-  else {
-    singlePixel.setPixelColor(0, 255, 0, 0);
-    singlePixel.setBrightness(map(subscribeValue, -1, -255, 0, 255));
+
   }
 
-
-  //uint32_t magenta = .Color(255, 0, 255);
-  //You can also convert separate red, green and blue values into a single 32-bit type for later use:
-  singlePixel.show();//This updates the whole strip at once
-  //You can query the color of a previously-set pixel using getPixelColor():
-  //uint32_t color = singlePixel.getPixelColor(11);
-
-  //The overall brightness of all the LEDs can be adjusted using setBrightness()
-  singlePixel.setBrightness(subscribeValue);
+  singlePixel.show(); // This sends the updated pixel color to the hardware.
+  if (subscribeValue == 0) {
+    singlePixel.setBrightness(0);
+  }
 
 }
 
@@ -161,9 +159,12 @@ void encoderLoop()  {
     // set the brightness of pin 9:
     //analogWrite(9, dialValue);
     //Serial.println(dialValue);
+    //Serial.println(dialValue);
+
     if (dialValue <= 0) {
-      analogWrite(ledPinR, map(dialValue, 0, -255, 0, 255));
+      analogWrite(ledPinR, 255);
       analogWrite(ledPinG, 0);
+      //Serial.println("Red Light Should be On");
     }
 
     else {
