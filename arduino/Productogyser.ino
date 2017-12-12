@@ -1,5 +1,9 @@
+//Rotary Encoder code source: http://www.hobbytronics.co.uk/arduino-tutorial6-rotary-encoder
+//PubNub code source: https://github.com/DigitalFuturesOCADU/creationANDcomputation/blob/master/Arduino%20Examples/FeatherNetworking/PubNub/_06PubNub_readOnTimer_sendOnPress/_06PubNub_readOnTimer_sendOnPress.ino
+//Neopixel code source: https://learn.adafruit.com/adafruit-neopixel-uberguide/arduino-library-use
+
 const static char pubChannel[] = "Channel1"; //choose a name for the channel to publish messages to
-int dialValue = 0;   //starting value, change it up!
+int dialValue = 0;   //starting value.
 
 #include <ArduinoJson.h>
 #include <SPI.h>
@@ -11,18 +15,12 @@ int dialValue = 0;   //starting value, change it up!
 static char ssid[] = "Lanalgo 2.4";      //SSID of the wireless network
 static char pass[] = "zapzapzap";    //password of that network
 
-//static char ssid[] = "funnet";      //SSID of the wireless network
-//static char pass[] = "ihbt6066";    //password of that network
-
-//static char ssid[] = "ocadu-embedded";      //SSID of the wireless network
-//static char pass[] = "internetofthings";    //password of that network
-
 int status = WL_IDLE_STATUS;                // the Wifi radio's status
 
 const static char pubkey[] = "pub-c-6ccec77b-ca42-473d-a464-74d2db31f511";  //get this from your PUbNub account
 const static char subkey[] = "sub-c-d85c438c-d64a-11e7-bcb2-02515ebb3dc0";  //get this from your PubNub account
 
-const static char subChannel[] = "Channel0"; //choose a name for the channel to publish messages to
+const static char subChannel[] = "Channel0"; //choose a name for the channel to subscribe to.
 
 int ledPinG = 10;                  //encoder Green LED
 int ledPinR = 13;                  //encoder Red LED
@@ -31,14 +29,13 @@ unsigned long lastSubscribe = 0;
 unsigned long lastPublish = 0;
 unsigned long DepreciationMarker = 0;
 int DepreciationRate = 1510;
-int subscribeRate = 1510;              //refresh rate for reading values
-int publishRate = 1510;              //refresh rate for reading values
+int subscribeRate = 1510;              //refresh rate for PubNub subscribe
+int publishRate = 1510;                //refresh rate for PubNub publish
 
 int subscribeValue;                       //variables holding the values coming from the server
 int publishValue;                         //variable holding the vaues going to the server
 
-
-int encoderFadeAmount = 10;    // how many points to fade the LED by
+int encoderFadeAmount = 5;    // how many points to fade the LED by
 unsigned long encoderCurrentTime;
 unsigned long encoderLoopTime;
 const int encoderPin_A = 12;  // pin 12
@@ -73,19 +70,16 @@ void neoPixelSetup() {
 }
 
 void encoderSetup()  {
-  // declare pin 9 to be an output:
-  //pinMode(9, OUTPUT);
+  pinMode(ledPinG, OUTPUT);
+  pinMode(ledPinR, OUTPUT);
   pinMode(encoderPin_A, INPUT_PULLUP);
   pinMode(encoderPin_B, INPUT_PULLUP);
   encoderCurrentTime = millis();
   encoderLoopTime = encoderCurrentTime;
 }
 
-
 void PubNubSetup()
 {
-  pinMode(ledPinG, OUTPUT);
-  pinMode(ledPinR, OUTPUT);
   Serial.begin(9600);
   connectToServer();
 }
@@ -97,7 +91,7 @@ void loop() {
   Depreciation();
 }
 
-void Depreciation() {
+void Depreciation() { //depreciates user focusDesire over time, creating a 'dead man's switch'. Any value reverts to 0 over time.
   if (millis() - DepreciationMarker >= DepreciationRate) //theTimer to trigger the reads
   {
     if (dialValue < 0) {
@@ -114,7 +108,7 @@ void Depreciation() {
   }
 }
 
-void neoPixelLoop() {
+void neoPixelLoop() { //sets neopixel to display global office state.
   if (subscribeValue < 0) {
     singlePixel.setPixelColor(0, singlePixel.Color(255, 0, 0)); // red
     singlePixel.setBrightness(abs(subscribeValue));
@@ -162,9 +156,8 @@ void encoderLoop()  {
     //Serial.println(dialValue);
 
     if (dialValue <= 0) {
-      analogWrite(ledPinR, 255);
+      analogWrite(ledPinR, abs(dialValue));
       analogWrite(ledPinG, 0);
-      //Serial.println("Red Light Should be On");
     }
 
     else {
@@ -175,7 +168,6 @@ void encoderLoop()  {
 
     encoderLoopTime = encoderCurrentTime;  // Updates encoderLoopTime
   }
-  // Other processing can be done here
 
 
 }
@@ -184,40 +176,18 @@ void PubNubloop()
 {
 
 
-  //analogWrite(ledPin, yourVal2);                  //adjust the value of the led using the value from the server
-
-  //buttonVal = digitalRead(buttonPin);             //read the button
-
-
   publishValue = dialValue;                //read the potentiometer
-  //myVal2 = random(100,200);                       //store a random value
 
-
-
-  //
-  // if((buttonVal==1)&&(buttonPrev==0))  //trigger the feed update with a button, uses both current and prev value to only change on the switch
-  // {
-  // publishToPubNub();                    //send your values to PubNub
-  // }
-
-
-
-  if (millis() - lastSubscribe >= subscribeRate) //theTimer to trigger the reads
+  if (millis() - lastSubscribe >= subscribeRate) //the timer to trigger the reads
   {
     readFromPubNub();                   //read values from PubNub
-    //publishToPubNub();
-
     lastSubscribe = millis();
   }
-  if (millis() - lastPublish >= publishRate) //theTimer to trigger the publish
+  if (millis() - lastPublish >= publishRate) //the timer to trigger the publish
   {
-    //readFromPubNub();                   //read values from PubNub
     publishToPubNub();
-
     lastPublish = millis();
   }
-
-
 
 }
 
