@@ -69,10 +69,17 @@ function setup() {
 	$('#client-status-bar').hide();
 	$('#serial-status-bar').hide();
 
+	$('#client-status-bar').show();
+	local_state_enabled = true;
+	local_state = -100
+
+
 	$(canvas).click(function() {
 		
+		/*	
 		$('#client-status-bar').show();
 		local_state_enabled = true;
+		*/
 		// 0 is local state
 		//set_param_state(0, local_state) 
 	})
