@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>MAGS</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
+	<script src="https://cdn.pubnub.com/sdk/javascript/pubnub.4.18.0.js"></script>
+  </head>
+  <body>
+	  <img id='loading' src='assets/loading.gif'>
+	<div class='status-bar' >
+		<div class='centered' id='client-status-bar'>
+			<div id='minus' class='status-button'>-</div>
+			<div id='state'>#</div>
+			<div id='plus' class='status-button'>+</div>
+		</div>
+	</div>
+
+	<div class='status-bar' id='serial-status-bar'>
+		<div class='centered'>
+			<div id='serial-state'>#</div>
+		</div>
+	</div>
+  </body>
+
+<!-- top button -->
+<script src="https://cdn.rawgit.com/KaroAntonio/net-template/master/js/universal-home.js"></script>
+
+<script src="libs/p5.min.js"></script>
+<script src="js/p5.serialport.js"></script>
+<script src="script.js"></script>
+</html>

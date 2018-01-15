@@ -1,0 +1,62 @@
+body,html { margin: 0px; border: 0px; }
+
+#loading {
+	position: absolute;
+	right: 50vw;
+	top: 20vh;
+	width: 40px;
+	height: 40px;
+	z-index: 1000000; /* the highest */
+}
+
+.status-bar {
+	color: black;
+	width: 30px;
+	  -webkit-touch-callout: none; /* iOS Safari */
+    -webkit-user-select: none; /* Safari */
+     -khtml-user-select: none; /* Konqueror HTML */
+       -moz-user-select: none; /* Firefox */
+        -ms-user-select: none; /* Internet Explorer/Edge */
+            user-select: none;
+	text-align: center;
+	position: absolute;
+	width: 100vw;
+	bottom: 20px;
+	z-index: 100;
+}
+
+.status-button:hover {
+	background: black;
+	color: white;
+	cursor: pointer;
+	width: 40px;
+}
+
+.status-button {
+	background: white;
+	float: left;
+	width: 40px;
+}
+
+.centered {
+	display: inline-block;
+	width: auto;
+}
+
+#state {
+	background: white;
+	width: 40px;
+	float: left;
+	display: inline-block;
+}
+
+#serial-state {
+	background: white;
+	width: 40px;
+	float: left;
+	display: inline-block;
+}
+
+#serial-status-bar {
+	bottom: 40px;
+}
